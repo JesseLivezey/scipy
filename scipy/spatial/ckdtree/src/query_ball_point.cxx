@@ -1,6 +1,7 @@
 #include <Python.h>
 #include "numpy/arrayobject.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
