@@ -867,8 +867,9 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
         ----------
         x : array_like, shape tuple + (self.m,)
             The point or points to search for neighbors of.
-        r : positive float
-            The radius of points to return.
+        r : array_like, shape tuple or positive float
+            The radius of points to return. Can be a scalar or an array matching
+            the points dimensions of x.
         p : float, optional
             Which Minkowski p-norm to use.  Should be in the range [1, inf].
         eps : nonnegative float, optional
