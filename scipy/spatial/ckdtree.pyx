@@ -922,15 +922,19 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
 
             x = np.asarray(x, dtype=np.float64)
             r = np.asarray(r, dtype=np.float64)
-            rr = np.ascontiguousarray(r, dtype=np.float64)
-            rr_size = rr.size
+            rr_size = r.size
             if x.shape[-1] != self.m:
                 raise ValueError("Searching for a %d-dimensional point in a "
                                  "%d-dimensional KDTree" %
                                      (int(x.shape[-1]), int(self.m)))
             if len(x.shape) == 1:
+                if r.shape != x.shape and rr_size != 1:
+                    print(r.shape, x.shape, rr_size)
+                    raise ValueError("r must either be an array of shape "
+                                     "x.shape[:-1] or 0.")
                 vres = new vector[np.intp_t]()
                 xx = np.ascontiguousarray(x, dtype=np.float64)
+                rr = np.ascontiguousarray(r, dtype=np.float64)
                 query_ball_point(<ckdtree*> self, &xx[0], &rr[0], rr_size, p, eps, 1, &vres)
                 n = <np.intp_t> vres.size()
                 tmp = n * [None]
@@ -942,6 +946,9 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                 result = tmp
 
             else:
+                if r.shape != x.shape[:-1] and rr_size != 1:
+                    raise ValueError("r must either be an array of shape "
+                                     "x.shape[:-1] or 1.")
                 retshape = x.shape[:-1]
 
                 # allocate an array of std::vector<npy_intp>
@@ -959,9 +966,15 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                 result = np.empty(retshape, dtype=object)
 
                 vxx = np.zeros((n,self.m), dtype=np.float64)
+                if rr_size == 1:
+                    rr = np.ascontiguousarray(r, dtype=np.float64)
+                else:
+                    rr = np.zeros(n, dtype=np.float64)
                 i = 0
                 for c in np.ndindex(retshape):
                     vxx[i,:] = x[c]
+                    if rr_size != 1:
+                        rr[i] = r[c]
                     i += 1
 
                 # multithreading logic is similar to cKDTree.query
