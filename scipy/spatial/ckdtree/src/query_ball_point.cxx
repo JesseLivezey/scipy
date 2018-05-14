@@ -117,7 +117,7 @@ query_ball_point(const ckdtree *self, const npy_float64 *x,
         try {
             for (npy_intp i=0; i < n_queries; ++i) {
                 const npy_intp m = self->m;
-                const npy_float64 rr = r[std::min(int(i), int(n_r-1))];
+                const npy_float64 rr = r[std::min(i, n_r-1)];
                 //const npy_float64 rr = r[i];
                 //const npy_float64 rr = r[0];
                 Rectangle rect(m, self->raw_mins, self->raw_maxes);
