@@ -1,7 +1,6 @@
 #include <Python.h>
 #include "numpy/arrayobject.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -99,6 +98,8 @@ traverse_checking(const ckdtree *self,
 }
 
 
+inline npy_intp min(npy_intp x, npy_intp y) { return x < y ? x : y; }
+
 extern "C" PyObject*
 query_ball_point(const ckdtree *self, const npy_float64 *x,
                  const npy_float64 *r, const npy_intp n_r,
@@ -117,7 +118,7 @@ query_ball_point(const ckdtree *self, const npy_float64 *x,
         try {
             for (npy_intp i=0; i < n_queries; ++i) {
                 const npy_intp m = self->m;
-                const npy_float64 rr = r[std::min(i, n_r-1)];
+                const npy_float64 rr = r[min(i, n_r-1)];
                 //const npy_float64 rr = r[i];
                 //const npy_float64 rr = r[0];
                 Rectangle rect(m, self->raw_mins, self->raw_maxes);
