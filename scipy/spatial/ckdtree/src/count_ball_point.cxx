@@ -22,7 +22,7 @@
 
 static void
 traverse_no_checking(const ckdtree *self,
-                     std::vector<npy_intp> *results,
+                     npy_intp *results,
                      const ckdtreenode *node)
 {
     const npy_intp *indices = self->raw_indices;
@@ -34,7 +34,7 @@ traverse_no_checking(const ckdtree *self,
         const npy_intp start = lnode->start_idx;
         const npy_intp end = lnode->end_idx;
         for (i = start; i < end; ++i)
-            results->push_back(indices[i]);
+            results[0]++
     }
     else {
         traverse_no_checking(self, results, node->less);
@@ -45,7 +45,7 @@ traverse_no_checking(const ckdtree *self,
 
 template <typename MinMaxDist> static void
 traverse_checking(const ckdtree *self,
-                  std::vector<npy_intp> *results,
+                  npy_intp *results,
                   const ckdtreenode *node,
                   RectRectDistanceTracker<MinMaxDist> *tracker)
 {
@@ -56,7 +56,7 @@ traverse_checking(const ckdtree *self,
     if (tracker->min_distance > tracker->upper_bound * tracker->epsfac)
         return;
     else if (tracker->max_distance < tracker->upper_bound / tracker->epsfac)
-        traverse_no_checking(self, results, node);
+        traverse_no_checking(self, &results[0], node);
     else if (node->split_dim == -1)  { /* leaf node */
 
         /* brute-force */
@@ -82,7 +82,7 @@ traverse_checking(const ckdtree *self,
             d = MinMaxDist::point_point_p(self, data + indices[i] * m, tpt, p, m, tub);
 
             if (d <= tub) {
-                results->push_back((npy_intp) indices[i]);
+                results[0]++
             }
         }
     }
@@ -109,7 +109,7 @@ count_ball_point(const ckdtree *self, const npy_float64 *x,
 #define HANDLE(cond, kls) \
     if(cond) { \
         RectRectDistanceTracker<kls> tracker(self, point, rect, p, eps, rr); \
-        traverse_checking(self, results[i], self->ctree, &tracker); \
+        traverse_checking(self, &results[i], self->ctree, &tracker); \
     } else
 
     /* release the GIL */

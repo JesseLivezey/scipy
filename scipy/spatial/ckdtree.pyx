@@ -924,9 +924,6 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
             list tmp
             np.intp_t i, j, n, m
 
-        vres = NULL
-        vvres = NULL
-
         try:
 
             x = np.asarray(x, dtype=np.float64)
@@ -955,7 +952,7 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                 # allocate an array of std::vector<npy_intp>
                 n = np.prod(retshape)
                 vres = np.empty(n, dtype=np.int64)
-                result = np.empty(retshape, dtype=np.int64)
+                results = np.empty(retshape, dtype=np.int64)
 
                 vxx = np.zeros((n, self.m), dtype=np.float64)
                 if rr_size == 1:
@@ -1012,6 +1009,8 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                 for c in np.ndindex(retshape):
                     results[c] = vres[i]
                     i += 1
+        finally:
+            pass
 
         return result
     # ----------------
