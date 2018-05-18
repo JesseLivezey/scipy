@@ -194,7 +194,7 @@ count_ball_point(const ckdtree *self,
                  const npy_float64 p,
                  const npy_float64 eps,
                  const npy_intp n_queries,
-                 npt_intp *results);
+                 npy_intp *results);
 
 CKDTREE_EXTERN PyObject*
 query_ball_point(const ckdtree *self,

@@ -25,7 +25,6 @@ traverse_no_checking(const ckdtree *self,
                      npy_intp *results,
                      const ckdtreenode *node)
 {
-    const npy_intp *indices = self->raw_indices;
     const ckdtreenode *lnode;
     npy_intp i;
 
@@ -34,7 +33,7 @@ traverse_no_checking(const ckdtree *self,
         const npy_intp start = lnode->start_idx;
         const npy_intp end = lnode->end_idx;
         for (i = start; i < end; ++i)
-            results[0]++
+            results[0]++;
     }
     else {
         traverse_no_checking(self, results, node->less);
@@ -82,7 +81,7 @@ traverse_checking(const ckdtree *self,
             d = MinMaxDist::point_point_p(self, data + indices[i] * m, tpt, p, m, tub);
 
             if (d <= tub) {
-                results[0]++
+                results[0]++;
             }
         }
     }
@@ -119,9 +118,8 @@ count_ball_point(const ckdtree *self, const npy_float64 *x,
             for (npy_intp i=0; i < n_queries; ++i) {
                 const npy_intp m = self->m;
                 const npy_float64 rr = r[min(i, n_r-1)];
-                //const npy_float64 rr = r[i];
-                //const npy_float64 rr = r[0];
                 Rectangle rect(m, self->raw_mins, self->raw_maxes);
+                results[i] = 0;
                 if (NPY_LIKELY(self->raw_boxsize_data == NULL)) {
                     Rectangle point(m, x + i * m, x + i * m);
                     HANDLE(NPY_LIKELY(p == 2), MinkowskiDistP2)

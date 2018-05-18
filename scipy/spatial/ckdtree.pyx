@@ -870,6 +870,7 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
         """
         count_ball_point(self, x, r, p=2., eps=0)
 
+        
         Count all points within distance r of point(s) x.
 
         Parameters
@@ -937,7 +938,7 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                 if r.shape != x.shape and rr_size != 1:
                     raise ValueError("r must either be an array of shape "
                                      "x.shape[:-1] or 0.")
-                vres = np.empty(x.shape, dtype=np.int64)
+                vres = np.empty(1, dtype=np.int64)
                 xx = np.ascontiguousarray(x, dtype=np.float64)
                 rr = np.ascontiguousarray(r, dtype=np.float64)
                 count_ball_point(<ckdtree*> self, &xx[0], &rr[0], rr_size, p, eps, 1, &vres[0])
