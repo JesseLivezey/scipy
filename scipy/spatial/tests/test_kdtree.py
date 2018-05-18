@@ -1348,3 +1348,11 @@ def test_short_knn():
             [0., 0.01, np.inf, np.inf],
             [0., 0.01, np.inf, np.inf],
             [0., np.inf, np.inf, np.inf]])
+
+def test_count_ball_points_compiled():
+    x = np.random.randn(1000, 1)
+
+    kdtree = cKDTree(x)
+    n1 = [len(kdtree.query_ball_point(point, .02)) for point in x]
+    n2 = kdtree.count_ball_point(x, .02)
+    assert_array_equal(n1, n2)
