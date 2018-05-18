@@ -391,6 +391,15 @@ cdef extern from "ckdtree_methods.h":
                            const np.float64_t p,
                            int cumulative)
 
+    object count_ball_point(const ckdtree *self,
+                            const np.float64_t *x,
+                            const np.float64_t *r,
+                            const np.intp_t n_r,
+                            const np.float64_t p,
+                            const np.float64_t eps,
+                            const np.intp_t n_queries,
+                            np.intp_t *results)
+
     object query_ball_point(const ckdtree *self,
                             const np.float64_t *x,
                             const np.float64_t *r,
@@ -853,6 +862,159 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
         return ddret, iiret
 
     # ----------------
+    # count_ball_point
+    # ----------------
+
+    def count_ball_point(cKDTree self, object x, object r,
+                         np.float64_t p=2., np.float64_t eps=0, n_jobs=1):
+        """
+        count_ball_point(self, x, r, p=2., eps=0)
+
+        Count all points within distance r of point(s) x.
+
+        Parameters
+        ----------
+        x : array_like, shape tuple + (self.m,)
+            The point or points to search for neighbors of.
+        r : array_like, shape tuple or positive float
+            The radius of points to return. Can be a scalar or an array matching
+            the points dimensions of x.
+        p : float, optional
+            Which Minkowski p-norm to use.  Should be in the range [1, inf].
+        eps : nonnegative float, optional
+            Approximate search. Branches of the tree are not explored if their
+            nearest points are further than ``r / (1 + eps)``, and branches are
+            added in bulk if their furthest points are nearer than
+            ``r * (1 + eps)``.
+        n_jobs : int, optional
+            Number of jobs to schedule for parallel processing. If -1 is given
+            all processors are used. Default: 1.
+
+        Returns
+        -------
+        results : array_like, shape tuple
+            If `x` is a single point, returns a the number of
+            neighbors of `x`. If `x` is an array of points, returns an
+            array of shape tuple containing counts of neighbors.
+
+        Notes
+        -----
+        If you have many points whose neighbors you want to find, you may save
+        substantial amounts of time by putting them in a cKDTree and using
+        query_ball_tree.
+
+        Examples
+        --------
+        >>> from scipy import spatial
+        >>> x, y = np.mgrid[0:4, 0:4]
+        >>> points = np.c_[x.ravel(), y.ravel()]
+        >>> tree = spatial.cKDTree(points)
+        >>> tree.count_ball_point([2, 0], 1)
+        4
+
+        """
+
+        cdef:
+            np.ndarray[np.float64_t, ndim=1, mode="c"] xx
+            np.ndarray[np.float64_t, ndim=2, mode="c"] vxx
+            np.ndarray[np.float64_t, ndim=1, mode="c"] rr
+            np.ndarray[np.intp_t, ndim=1, mode="c"] vres
+            np.uintp_t vvres_uintp
+            np.intp_t *cur
+            list tmp
+            np.intp_t i, j, n, m
+
+        vres = NULL
+        vvres = NULL
+
+        try:
+
+            x = np.asarray(x, dtype=np.float64)
+            r = np.asarray(r, dtype=np.float64)
+            rr_size = r.size
+            if x.shape[-1] != self.m:
+                raise ValueError("Searching for a %d-dimensional point in a "
+                                 "%d-dimensional KDTree" %
+                                     (int(x.shape[-1]), int(self.m)))
+            if len(x.shape) == 1:
+                if r.shape != x.shape and rr_size != 1:
+                    raise ValueError("r must either be an array of shape "
+                                     "x.shape[:-1] or 0.")
+                vres = np.empty(x.shape, dtype=np.int64)
+                xx = np.ascontiguousarray(x, dtype=np.float64)
+                rr = np.ascontiguousarray(r, dtype=np.float64)
+                count_ball_point(<ckdtree*> self, &xx[0], &rr[0], rr_size, p, eps, 1, &vres[0])
+                result = vres
+
+            else:
+                if r.shape != x.shape[:-1] and rr_size != 1:
+                    raise ValueError("r must either be an array of shape "
+                                     "x.shape[:-1] or 1.")
+                retshape = x.shape[:-1]
+
+                # allocate an array of std::vector<npy_intp>
+                n = np.prod(retshape)
+                vres = np.empty(n, dtype=np.int64)
+                result = np.empty(retshape, dtype=np.int64)
+
+                vxx = np.zeros((n, self.m), dtype=np.float64)
+                if rr_size == 1:
+                    rr = np.ascontiguousarray(r, dtype=np.float64)
+                else:
+                    rr = np.zeros(n, dtype=np.float64)
+                i = 0
+                for c in np.ndindex(retshape):
+                    vxx[i,:] = x[c]
+                    if rr_size != 1:
+                        rr[i] = r[c]
+                    i += 1
+
+                # multithreading logic is similar to cKDTree.query
+
+                if (n_jobs == -1):
+                    n_jobs = number_of_processors
+
+                if n_jobs > 1:
+
+                    CHUNK = n//n_jobs if n//n_jobs else n
+
+                    def _thread_func(self, _j, _vxx, _rr, p, eps, _vres, CHUNK, _size):
+                        cdef:
+                            np.intp_t j = _j
+                            np.ndarray[np.float64_t,ndim=2] vxx = _vxx
+                            np.ndarray[np.float64_t,ndim=1] rr = _rr
+                            np.ndarray[np.intp_t,ndim=1] vres = _vres
+                            np.intp_t start = j*CHUNK
+                            np.intp_t stop = start + CHUNK
+                            np.intp_t size = _size
+                            np.intp_t start_rr = _size
+                        start_rr = min(start, size-1)
+                        stop = n if stop > n else stop
+                        if start < n:
+                            count_ball_point(<ckdtree*>self, &vxx[start,0],
+                                &rr[start_rr], size, p, eps, stop-start, &vres[start])
+
+                    threads = [threading.Thread(target=_thread_func,
+                               args=(self, j, vxx, rr, p, eps, vres, CHUNK, rr_size))
+                                  for j in range(1+(n//CHUNK))]
+                    for t in threads:
+                        t.daemon = True
+                        t.start()
+                    for t in threads:
+                        t.join()
+
+                else:
+
+                    count_ball_point(<ckdtree*>self, &vxx[0,0], &rr[0], rr_size, p, eps,
+                        n, &vres[0])
+
+                i = 0
+                for c in np.ndindex(retshape):
+                    results[c] = vres[i]
+                    i += 1
+
+        return result
+    # ----------------
     # query_ball_point
     # ----------------
 
@@ -930,7 +1092,6 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                                      (int(x.shape[-1]), int(self.m)))
             if len(x.shape) == 1:
                 if r.shape != x.shape and rr_size != 1:
-                    print(r.shape, x.shape, rr_size)
                     raise ValueError("r must either be an array of shape "
                                      "x.shape[:-1] or 0.")
                 vres = new vector[np.intp_t]()

@@ -37,6 +37,7 @@ def configuration(parent_package='', top_path=None):
                    'cpp_exc.cxx',
                    'query_pairs.cxx',
                    'count_neighbors.cxx',
+                   'count_ball_point.cxx',
                    'query_ball_point.cxx',
                    'query_ball_tree.cxx',
                    'sparse_distances.cxx']

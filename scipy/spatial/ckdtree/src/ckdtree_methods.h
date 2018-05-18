@@ -187,6 +187,16 @@ count_neighbors_weighted(const ckdtree *self,
                 int cumulative);
 
 CKDTREE_EXTERN PyObject*
+count_ball_point(const ckdtree *self,
+                 const npy_float64 *x,
+                 const npy_float64 *r,
+                 const npy_intp n_r,
+                 const npy_float64 p,
+                 const npy_float64 eps,
+                 const npy_intp n_queries,
+                 npt_intp *results);
+
+CKDTREE_EXTERN PyObject*
 query_ball_point(const ckdtree *self,
                  const npy_float64 *x,
                  const npy_float64 *r,
